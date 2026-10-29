@@ -62,20 +62,20 @@ with QArm(hardware=int(mode), readMode=0) as myArm:
     # - time.time() gives current time
     start_time = time.time()
     previous_time = start_time
+    current_phi = QArm_Interface.read_from_arm()
     
     while True:
         current_time = time.time()
         delta_time = current_time - previous_time
-        previous_time = current_time
-        trajectory_time =  (current_time - start_time)
+        trajectory_time = (current_time - start_time)
 
+        print(delta_time)
+        
+        curr_pos, _ = QArm_Interface.forward_kinematics(current_phi)
         desired_position = spline(trajectory_time)
-        print(desired_position)
-        desired_velocity = spline_vel(trajectory_time)
+        desired_velocity = spline_vel(trajectory_time) + Kp * (spline(trajectory_time) - curr_pos)
         desired_velocity = np.append(desired_velocity, 0)  # Append 0 for the gripper velocity
         print(desired_velocity)
-
-        current_phi = QArm_Interface.read_from_arm()
 
         j_inv = QArm_Interface.Inv_Jacobian(current_phi)
 
@@ -86,6 +86,9 @@ with QArm(hardware=int(mode), readMode=0) as myArm:
 
         new_phi = current_phi + joint_velocity * delta_time
 
+        current_phi = new_phi
+
         QArm_Interface.write_to_arm(new_phi)
 
-        time.sleep(0.01)
+        previous_time = current_time
+        time.sleep(0.1)
