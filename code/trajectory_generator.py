@@ -60,5 +60,31 @@ with QArm(hardware=int(mode), readMode=0) as myArm:
     # - spline_vel(t) to find velocity at a certain time
     #
     # - time.time() gives current time
+    start_time = time.time()
+    previous_time = start_time
+    
+    while True:
+        current_time = time.time()
+        delta_time = current_time - previous_time
+        previous_time = current_time
+        trajectory_time =  (current_time - start_time)
 
-    time.sleep(4)
+
+        desired_position = spline(trajectory_time)
+        desired_velocity = spline_vel(trajectory_time)
+        desired_velocity = np.append(desired_velocity, 0)  # Append 0 for the gripper velocity
+
+        current_phi = QArm_Interface.read_from_arm()
+
+        j_inv = QArm_Interface.Inv_Jacobian(current_phi)
+
+        print("j_inv: ", np.shape(j_inv))
+        print("desired_velocity: ", np.shape(desired_velocity))
+
+        joint_velocity = j_inv @ desired_velocity
+
+        new_phi = current_phi + joint_velocity * delta_time
+
+        QArm_Interface.write_to_arm(new_phi)
+
+        time.sleep(0.1)
